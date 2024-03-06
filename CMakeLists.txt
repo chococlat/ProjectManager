@@ -10,8 +10,22 @@ if (POLICY CMP0141)
 endif()
 
 # Create project
-project(cmake_template_v2 VERSION 0.1.0 LANGUAGES C CXX)
+project(pp VERSION 0.1.0 LANGUAGES C CXX)
 
 # Add subdirectories
 set(SUB_DIRS app)
 add_subdirectory (${SUB_DIRS})
+
+# CTest
+include(CTest)
+enable_testing()
+
+# CPack
+include(CPack)
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "name")
+#set(CPACK_GENERATOR NSIS)
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/app/templates
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/app)

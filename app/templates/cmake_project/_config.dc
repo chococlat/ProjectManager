@@ -1,0 +1,35 @@
+
+!ask 
+    PARAM0 "Hello"
+    PARAM4 = true "question"
+    PARAM5 = ["1221","asdasd"]
+    PAR_S = 56
+
+folder1:
+    fileTest.txt
+folder2:
+    fileTest.txt fileRenamed.json
+    file
+    file PARAM1="123" PARAM2="qwe"
+folder{PARAM0}_12:
+
+!for x[0,10]
+    folder{x}:
+
+!for x in [12,2323,3]
+    file.txt{x}
+
+!if PARAM4==true
+    dsasd.json
+!elif PARAM0==123
+    123
+!else
+    qwe.yaml
+
+!switch PAR_S
+    123:
+        123adad
+    3434:
+        sdfsdf
+    ::
+        defasd
