@@ -9,6 +9,7 @@ set(SRC_FILES_APP
     "src/cli.cpp"
     "src/flib.cpp"
     "src/globals.cpp"
+    "src/directory.cpp"
     )
 
 add_executable (${PROJECT_NAME} ${SRC_FILES_APP})

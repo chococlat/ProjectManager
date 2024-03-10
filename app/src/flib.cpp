@@ -1,47 +1,20 @@
 #include "globals.h"
 #include "flib.h"
 
-struct File {
-	std::string _name;
-	std::string _content;
-};
-
-struct Directory {
-	std::string _name;
-	std::vector<Directory>* _subdirs;
-	std::vector<File>* _files;
-};
-
-struct Parameters {
-
-	std::unordered_map<std::string, int> *_int_params;
-	std::unordered_map<std::string, bool>* _bool_params;
-	std::unordered_map<std::string, std::string>* _string_params;
-	std::unordered_map<std::string, std::vector<int>>* _int_vect_params;
-	std::unordered_map<std::string, std::vector<bool>>* _bool_vect_params;
-	std::unordered_map<std::string, std::vector<std::string>>* _string_vect_params;
-
-};
-
-std::vector<std::string>* file2vect(fs::path _path){
+bool file2vect(fs::path _path, std::vector<std::string>* _ivect){
 
 	std::ifstream file(_path);
-	std::vector<std::string>* _ivect = new std::vector<std::string>;
 	if (!file.is_open()) {
-		std::cerr << "Failed to open file.\n";
-	
+		return false;
 	}
 	else {
 		std::string line;
 		while (std::getline(file, line)) {
 			_ivect->push_back(line);
-			// print_raw(line);
-
 		}
 		file.close();
+		return true;
 	}
-	
-	return _ivect;
 }
 
 void write_file(std::string _content, fs::path _path){
@@ -74,46 +47,92 @@ void print_raw(std::string s) {
 	}std::cout << "\n";
 }
 
-
-bool validate_template(std::string _template_name) {
-
-	bool result = true;
-	fs::path config_path = TEMPLATE_PATH / _template_name / "_config.dc";
-	std::vector<std::string>* _ivect = file2vect(config_path);
-
-	// Validate .dc File
-	int counter = 0;
-	for (auto vi = _ivect->begin(); vi != _ivect->end(); vi++) {
-		counter++;
-
-		// Find not allowed characters
-		for (auto& c : *vi) {
-			if (ALLOWED_CHARACTERS.find(c) == ALLOWED_CHARACTERS.end()) {
-				std::cout << "Invalid characters found. (line " << counter << ") '" << c << "'\n";
-				result = false;
+bool extract_f(std::string& _input, std::string* _output, int _offset, int _section, std::vector<std::string>* _substrings){
+	
+	if (_substrings->size() == 0) return false;
+	if (_input.size() < _offset + 1) return false;
+	if (std::find(_substrings->begin(), _substrings->end(), "") != _substrings->end()) return false;
+	int vi = 0;
+	std::string ioutput = "";
+	for (int i = _offset; i < _input.length(); i++) {
+		if (vi == _section) ioutput += _input[i];
+		if (i + (*_substrings)[vi].length() <= _input.length()) {
+			bool same = true;
+			for (int ci = 0; ci < (*_substrings)[vi].length() && same; ci++) {
+				if ((*_substrings)[vi][ci] != _input[i + ci]) same = false;
+			}
+			if (same) {
+				ioutput = ioutput.substr(0, ioutput.size() - 1);
+				i += (*_substrings)[vi].length() - 1;
+				vi++;
+				if (_section == vi == _substrings->size()) ioutput == _input.substr(i, _input.length() - i);
 			}
 		}
+		else break;
+	}
+	if (vi == _substrings->size()) {
+		*_output = ioutput;
+		return true;
+	}
+	else return false;
+}
 
-		// Remove carriage return
-		for (auto i = (*vi).begin(); i != (*vi).end();) {
-			if (*i == '\r') {
-				(*vi).erase(i);
-			}
-			else {
-				i++;
-			}
+int count_begin_spaces(std::string _input){
+	int count = 0;
+	for (auto c : _input) {
+		if (c == ' ') count++;
+		else break;
+	}
+	return count;
+}
+
+void adjust_spaces(std::string& _input, int _n){
+	_input.erase(0, count_begin_spaces(_input));
+	std::string prefix = "";
+	for (auto i = 0; i < _n; i++) prefix += " ";
+	_input = prefix + _input;
+}
+
+void clean_spaces(std::string& _input){
+	bool lbegin = true;
+	bool quotes = false;
+	std::string temps = "";
+
+	// First traverse
+	for (auto i = 0; i < _input.size(); i++) {
+		if (_input[i] == '\"') quotes = !quotes;
+
+		if (lbegin) {
+			temps += _input[i];
+			if (_input[i] != ' ') lbegin = false;
 		}
-
-		// Replace /t with /s/s/s/s
-		for (auto i = (*vi).begin(); i != (*vi).end();) {
-			if (*i == '\t') {
-				(*vi).erase(i);
-				i = (*vi).insert(i, 4, ' ') + 4;
-			}
-			else {
-				i++;
-			}
+		else {
+			if (_input[i] == ' ' && !quotes) {
+				for (; i < _input.size(); i++) if (_input[i] != ' ') break;
+				if (i != _input.size()) {
+					i--;
+					temps += _input[i];
+				} 
+			}else temps += _input[i];
 		}
 	}
-	return result;
+	_input = temps;
+	temps = "";
+
+	// Second traverse
+	quotes = false;
+	for (auto i = 0; i < _input.size(); i++) {
+		if (_input[i] == '\"') quotes = !quotes;
+		if (_input[i] == '=' && !quotes) {
+			if (i > 0 && _input[i - 1] == ' ') {
+				temps.erase(temps.size() - 1);
+			}
+			temps += '=';
+			if (i < _input.size() - 1 && _input[i + 1] == ' ') {
+				i++;
+			}
+		}
+		else temps += _input[i];
+	}
+	_input = temps;
 }
